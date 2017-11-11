@@ -1,59 +1,30 @@
----
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
----
-
-```{r global_options, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
-
-
-## Load libraries and set defaults
-Set English locale for appropriate names of days.  
-```{r, message = FALSE, results = "hide", warning = FALSE}
 Sys.setlocale("LC_TIME", "English")
-```  
 
-Load libraries for plotting, data processing and imputing.  
-```{r, message = FALSE}
+## Load libraries
 library(ggplot2)
 library(dplyr)
 library(mice)
-```  
 
-## Loading and preprocessing the data  
-Download data to local zip-file. Read data to dataframe including header and converting second column to Date format.  
-```{r}
+
+## Download and import data
 download.file("https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip", "activity.zip")
 df <- read.table(unz("activity.zip", "activity.csv"),
                  sep = ",",
                  header = TRUE,
                  colClasses = c("numeric", "Date", "numeric"))
-```  
 
-## What is mean total number of steps taken per day?
-```{r}
+## First task
 daily <- df %>% 
     group_by(date) %>% 
     summarise(sum = sum(steps, na.rm = TRUE),
               avg = mean(steps, na.rm = TRUE), 
               median = median(steps, na.rm = TRUE))
-```  
-
-```{r}
 g <- ggplot(data = daily, aes(x = sum))
 g + geom_histogram(bins = 50)
-```  
+daily[,c(1, 3, 4)]
 
-```{r, results='asis'}
-knitr::kable(daily[,c(1, 3, 4)], format = "html")
-```  
 
-## What is the average daily activity pattern?
-```{r}
+## Second task
 intervaly <- df %>% 
     group_by(interval) %>% 
     summarise(avg = mean(steps, na.rm = TRUE))
@@ -61,26 +32,18 @@ g <- ggplot(data = intervaly, aes(x = interval, y = avg))
 g + geom_line()
 which.max(intervaly$avg)
 intervaly[which.max(intervaly$avg), 1]
-```  
 
-## Imputing missing values
-```{r}
+
+## Third task
 sum(is.na(df))
-```
-
-```{r, message = FALSE}
 df_imp <- df %>% 
     mutate(date = as.factor(date)) %>% 
     mice(m=1, maxit = 10, method = 'pmm', seed = 500) %>%
     complete(1) %>% 
     mutate(date = as.Date(date))
-```  
 
-```{r}
 sum(is.na(df_imp))
-```  
 
-```{r}
 daily_imp <- df_imp %>% 
   group_by(date) %>% 
   summarise(sum = sum(steps, na.rm = TRUE), 
@@ -88,14 +51,10 @@ daily_imp <- df_imp %>%
             median = median(steps, na.rm = TRUE))
 g <- ggplot(data = daily_imp, aes(x = sum))
 g + geom_histogram(bins = 50)
-```  
-
-```{r results='asis'}
 daily_imp[,c(1, 3, 4)]
-```  
 
-## Are there differences in activity patterns between weekdays and weekends?
-```{r}
+
+## Fourth task
 df_week <- df_imp
 df_week$weekend <- "weekday"
 df_week$weekend[weekdays(df_week$date) == "Saturday" | weekdays(df_week$date) == "Sunday"] <- "weekend"
@@ -105,4 +64,3 @@ weekend <- df_week %>%
   summarise(avg = mean(steps, na.rm = TRUE))
 g <- ggplot(data = weekend, aes(x = interval, y = avg))
 g + geom_line() + facet_grid(weekend ~ .)
-```
